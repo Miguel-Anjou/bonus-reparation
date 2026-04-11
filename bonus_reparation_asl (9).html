@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus Réparation ASL — Soumission automatique</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --surface2: #f0ede7;
+  --border: #ddd9d0;
+  --text: #1c1a17;
+  --muted: #78736a;
+  --accent: #1d5c35;
+  --accent-bg: #e6f2eb;
+  --accent-border: #a8d4b8;
+  --warn-bg: #fef8e7;
+  --warn: #7a5800;
+  --warn-border: #f0d080;
+  --err-bg: #fdeaea;
+  --err: #8b1a1a;
+  --err-border: #f0aaaa;
+  --ok-bg: #e6f2eb;
+  --ok: #1d5c35;
+  --ok-border: #a8d4b8;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+  --r: 8px;
+  --r-sm: 5px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; }
+
+/* Header */
+header {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 0 2rem; height: 52px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 10px; }
+.logo-mark {
+  width: 26px; height: 26px; border-radius: 6px;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+}
+.logo-text { font-weight: 500; font-size: 14px; }
+.logo-sub { font-size: 11px; color: var(--muted); }
+.env-toggle {
+  display: flex; gap: 0; border: 1px solid var(--border);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.env-btn {
+  padding: 5px 14px; font-size: 12px; font-family: var(--sans);
+  background: none; border: none; cursor: pointer; color: var(--muted);
+}
+.env-btn.active { background: var(--accent); color: #fff; }
+
+/* Layout */
+main { max-width: 900px; margin: 0 auto; padding: 1.5rem 1.5rem 4rem; }
+
+/* Pipeline steps */
+.pipeline {
+  display: flex; gap: 0; margin-bottom: 1.5rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); overflow: hidden;
+}
+.pipe-step {
+  flex: 1; padding: 10px 14px;
+  font-size: 12px; color: var(--muted);
+  border-right: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.pipe-step:last-child { border-right: none; }
+.pipe-step.active { color: var(--text); background: var(--accent-bg); }
+.pipe-step.done { color: var(--accent); }
+.pipe-step.error { color: var(--err); background: var(--err-bg); }
+.pnum {
+  width: 18px; height: 18px; border-radius: 50%;
+  font-size: 10px; font-family: var(--mono); font-weight: 500;
+  background: var(--surface2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.pipe-step.active .pnum { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pipe-step.done .pnum { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pipe-step.error .pnum { background: var(--err); color: #fff; border-color: var(--err); }
+
+/* Cards */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 1.25rem 1.5rem; margin-bottom: 1rem;
+}
+.card-title {
+  font-size: 11px; font-weight: 500; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--muted);
+  padding-bottom: 10px; margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Form fields */
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.field input, .field select, .field textarea {
+  font-family: var(--sans); font-size: 13px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 7px 10px;
+  color: var(--text); outline: none; transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 56px; }
+.field input[readonly] { color: var(--muted); cursor: default; }
+.field input.ok { border-color: var(--accent); background: var(--ok-bg); }
+.field input.computed { font-weight: 500; color: var(--accent); border-color: var(--accent-border); background: var(--ok-bg); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 18px; border-radius: var(--r-sm);
+  font-family: var(--sans); font-size: 13px; font-weight: 500;
+  cursor: pointer; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  transition: all 0.15s;
+}
+.btn:hover:not(:disabled) { background: var(--surface2); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: #164d2b; }
+.btn-danger { background: var(--err-bg); color: var(--err); border-color: var(--err-border); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 1rem; }
+
+/* Drop zone */
+.drop-zone {
+  border: 2px dashed var(--border); border-radius: var(--r);
+  padding: 2.5rem 2rem; text-align: center; cursor: pointer;
+  transition: all 0.2s; background: var(--surface);
+}
+.drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+.drop-zone input { display: none; }
+.drop-icon { font-size: 32px; margin-bottom: 10px; display: block; }
+.drop-title { font-weight: 500; margin-bottom: 4px; }
+.drop-sub { font-size: 12px; color: var(--muted); }
+
+/* Alerts */
+.alert {
+  padding: 10px 14px; border-radius: var(--r-sm);
+  font-size: 13px; margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.alert-ok  { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok-border);   }
+.alert-err { background: var(--err-bg);  color: var(--err);  border: 1px solid var(--err-border);  }
+.alert-warn{ background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+.alert-info{ background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+
+/* Badges */
+.badge {
+  display: inline-block; font-size: 10px; padding: 2px 8px;
+  border-radius: 20px; font-family: var(--mono); font-weight: 500;
+}
+.badge-ok   { background: var(--ok-bg);   color: var(--ok);   border: 1px solid var(--ok-border);   }
+.badge-warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+.badge-err  { background: var(--err-bg);  color: var(--err);  border: 1px solid var(--err-border);  }
+.badge-info { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+
+/* Log console */
+.log-console {
+  background: #1a1a1a; color: #d4d0c8;
+  font-family: var(--mono); font-size: 12px;
+  border-radius: var(--r); padding: 14px;
+  max-height: 240px; overflow-y: auto;
+  line-height: 1.7; margin-top: 10px;
+}
+.log-console .log-ok   { color: #7ec880; }
+.log-console .log-err  { color: #f08080; }
+.log-console .log-warn { color: #f0c060; }
+.log-console .log-info { color: #80c8f0; }
+.log-console .log-dim  { color: #666; }
+
+/* Loading */
+.progress { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; margin: 8px 0; }
+.progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+.progress-bar.anim { width: 40%; animation: slide 1.3s ease-in-out infinite; }
+@keyframes slide { 0%{transform:translateX(-150%)} 100%{transform:translateX(300%)} }
+
+/* Spinner */
+.spin {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: rot 0.7s linear infinite;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* Result summary */
+.result-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.result-row:last-child { border-bottom: none; }
+.result-label { color: var(--muted); }
+.result-val { font-weight: 500; font-family: var(--mono); }
+.result-val.big { font-size: 18px; color: var(--accent); }
+
+/* File chip */
+.file-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--ok-bg); border: 1px solid var(--ok-border);
+  color: var(--ok); border-radius: 20px;
+  padding: 4px 12px; font-size: 12px; margin-top: 10px;
+  font-family: var(--mono);
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--accent); color: #fff;
+  padding: 10px 16px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 500;
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.3s; pointer-events: none; z-index: 999;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* Product list */
+.produit-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer;
+  border: 1px solid var(--border); margin-bottom: 6px; background: var(--surface);
+  transition: all 0.15s;
+}
+.produit-item:hover { border-color: var(--accent); background: var(--accent-bg); }
+.produit-item.selected { border-color: var(--accent); background: var(--accent-bg); }
+.produit-label { font-size: 13px; }
+.produit-bonus { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+@media (max-width: 560px) {
+  .field-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: 1; }
+  .pipeline { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">⚙</div>
+    <div>
+      <div class="logo-text">Bonus Réparation ASL</div>
+      <div class="logo-sub">OCR → Soumission automatique</div>
+    </div>
+  </div>
+  <div class="env-toggle">
+    <button class="env-btn active" id="btnPreprod" onclick="setEnv('preprod')">PRÉPROD</button>
+    <button class="env-btn" id="btnProd" onclick="setEnv('prod')">PROD</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Pipeline -->
+  <div class="pipeline">
+    <div class="pipe-step active" id="ps1"><div class="pnum">1</div> Config</div>
+    <div class="pipe-step" id="ps2"><div class="pnum">2</div> OCR Facture</div>
+    <div class="pipe-step" id="ps3"><div class="pnum">3</div> Produit</div>
+    <div class="pipe-step" id="ps4"><div class="pnum">4</div> Client</div>
+    <div class="pipe-step" id="ps5"><div class="pnum">5</div> Demande</div>
+    <div class="pipe-step" id="ps6"><div class="pnum">6</div> Soumission</div>
+  </div>
+
+  <div id="globalAlert"></div>
+
+  <!-- ÉTAPE 1 : Configuration -->
+  <div id="step1">
+    <div class="card">
+      <div class="card-title">Configuration</div>
+      <div class="field-grid">
+        <div class="field">
+          <label>Clé API Bearer (token réparateur)</label>
+          <div style="position:relative">
+            <input type="password" id="apiToken" placeholder="votre-token-ecologic" style="width:100%;padding-right:36px" />
+            <button onclick="toggleVis('apiToken')" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>OCR</label>
+          <input type="text" readonly value="Claude intégré (aucune clé requise)" style="color:var(--ok);background:var(--ok-bg);border-color:var(--ok-border)" />
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+        Token ASL → <a href="/cdn-cgi/l/email-protection#bccfc9ccccd3cec8fcddcfd092ded3d2c9cfced9ccddce92dace" style="color:var(--accent)"><span class="__cf_email__" data-cfemail="bbc8cecbcbd4c9cffbdac8d795d9d4d5cec8c9decbdac995ddc9">[email&#160;protected]</span></a> |
+        Environnement actif : <span id="envLabel" style="font-family:var(--mono);font-weight:500">PRÉPROD</span>
+      </div>
+    </div>
+
+    <!-- Upload facture -->
+    <div class="card">
+      <div class="card-title">Facture PDF à traiter</div>
+      <input type="file" id="fileInput" accept=".pdf" style="display:none" />
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+        <button class="btn btn-primary" style="font-size:15px; padding:12px 28px;" onclick="document.getElementById('fileInput').click()">
+          📂 Choisir un fichier PDF
+        </button>
+        <div id="fileChip" style="font-size:13px; color:var(--muted)">Aucun fichier sélectionné</div>
+      </div>
+      <div id="dropZone"
+        style="border:2px dashed var(--border); border-radius:var(--r); padding:1rem; text-align:center; font-size:13px; color:var(--muted); cursor:pointer; transition:border-color 0.2s;"
+        onclick="document.getElementById('fileInput').click()">
+        ou glisser-déposer le PDF ici
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn btn-primary" id="startBtn" onclick="startPipeline()" disabled>
+        Lancer l'analyse et la soumission →
+      </button>
+      <span style="font-size:12px;color:var(--muted)">L'outil va analyser la facture, trouver/créer le client, créer et soumettre la demande automatiquement.</span>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 2 : OCR -->
+  <div id="step2" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span>Analyse OCR de la facture</span>
+        <span class="badge badge-info" id="ocrBadge">En cours...</span>
+      </div>
+      <div class="progress"><div class="progress-bar anim" id="ocrBar"></div></div>
+      <div id="ocrStatus" style="font-size:13px;color:var(--muted);margin-top:6px">Envoi de la facture à Claude...</div>
+
+      <!-- Données extraites (éditables) -->
+      <div id="ocrResult" style="display:none;margin-top:1rem">
+        <div class="field-grid" style="margin-bottom:10px">
+          <div class="field"><label>Prénom client</label><input type="text" id="ocr_prenom" /></div>
+          <div class="field"><label>Nom client</label><input type="text" id="ocr_nom" /></div>
+          <div class="field full"><label>Email client</label><input type="text" id="ocr_email" /></div>
+          <div class="field"><label>Téléphone</label><input type="text" id="ocr_tel" /></div>
+          <div class="field"><label>Code postal</label><input type="text" id="ocr_cp" /></div>
+          <div class="field"><label>Ville</label><input type="text" id="ocr_ville" /></div>
+          <div class="field"><label>N° de facture</label><input type="text" id="ocr_num_facture" /></div>
+          <div class="field"><label>Date réparation</label><input type="text" id="ocr_date" /></div>
+          <div class="field"><label>Montant TTC total (€)</label><input type="text" id="ocr_ttc" /></div>
+          <div class="field"><label>Montant éligible TTC (€)</label><input type="text" id="ocr_eligible" /></div>
+          <div class="field full"><label>Description réparation</label><textarea id="ocr_description"></textarea></div>
+          <div class="field full"><label>Produit / Type d'objet réparé</label><input type="text" id="ocr_produit_label" /></div>
+          <div class="field"><label>Marque</label><input type="text" id="ocr_marque" /></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="goToStep3()">Confirmer et continuer →</button>
+          <button class="btn" onclick="resetAll()">Recommencer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 3 : Sélection produit -->
+  <div id="step3" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span>Sélection du produit ASL</span>
+        <span class="badge badge-info" id="prodBadge">Chargement...</span>
+      </div>
+      <div id="produitList"><div style="color:var(--muted);font-size:13px">Chargement des produits...</div></div>
+      <div style="margin-top:12px" id="marqueSection" style="display:none">
+        <div class="field-grid">
+          <div class="field">
+            <label>Marque (sélectionner ou saisir)</label>
+            <select id="marqueSelect" style="width:100%">
+              <option value="">-- Chargement... --</option>
+            </select>
+          </div>
+          <div class="field" id="marqueNewField" style="display:none">
+            <label>Nouvelle marque (si absente)</label>
+            <input type="text" id="marqueNew" placeholder="ex: PEUGEOT" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 : Client -->
+  <div id="step4" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span>Client</span>
+        <span class="badge" id="clientBadge">Recherche...</span>
+      </div>
+      <div id="clientStatus" style="font-size:13px;color:var(--muted);margin-bottom:10px"></div>
+      <div class="field-grid">
+        <div class="field"><label>Prénom</label><input type="text" id="cl_prenom" /></div>
+        <div class="field"><label>Nom</label><input type="text" id="cl_nom" /></div>
+        <div class="field full"><label>Email</label><input type="text" id="cl_email" /></div>
+        <div class="field"><label>Téléphone</label><input type="text" id="cl_tel" /></div>
+        <div class="field"><label>Code postal</label><input type="text" id="cl_cp" /></div>
+        <div class="field"><label>Ville</label><input type="text" id="cl_ville" /></div>
+      </div>
+      <input type="hidden" id="cl_id" value="" />
+      <div class="btn-group">
+        <button class="btn btn-primary" id="clientConfirmBtn" onclick="confirmClient()">Confirmer le client →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 5 : Création demande + MAJ + Soumission -->
+  <div id="step5" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span>Traitement de la demande</span>
+        <span class="badge badge-info" id="demandeBadge">En attente</span>
+      </div>
+      <div id="demandeLog" class="log-console"></div>
+      <div class="progress" style="margin-top:10px"><div class="progress-bar" id="demandeBar" style="width:0"></div></div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 6 : Résultat final -->
+  <div id="step6" style="display:none">
+    <div class="card">
+      <div class="card-title">
+        <span>Demande soumise avec succès</span>
+        <span class="badge badge-ok">✓ Soumise</span>
+      </div>
+      <div id="finalResult"></div>
+      <div class="btn-group" style="margin-top:1.25rem">
+        <button class="btn btn-primary" onclick="resetAll()">Traiter une nouvelle facture</button>
+        <a id="lienPlateforme" href="#" target="_blank" class="btn" style="text-decoration:none">Voir sur la plateforme →</a>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ============================================================
+// STATE
+// ============================================================
+let STATE = {
+  env: 'preprod',
+  fileData: null,
+  fileName: null,
+  ocrData: null,
+  produits: [],
+  marques: [],
+  selectedProduit: null,
+  selectedMarqueId: null,
+  selectedMarqueNew: null,
+  clientId: null,
+  demandeId: null,
+  demandeCode: null,
+  siteReparations: []
+};
+
+const BASE_URLS = {
+  preprod: 'https://asl-pp.reparateur-bonusrepar.fr',
+  prod:    'https://asl.reparateur-bonusrepar.fr'
+};
+
+// Proxy CORS pour contourner les restrictions navigateur
+const PROXY = 'https://corsproxy.io/?url=';
+function baseUrl() { return PROXY + encodeURIComponent(BASE_URLS[STATE.env]); }
+function token()   { return document.getElementById('apiToken').value.trim(); }
+
+// ============================================================
+// UTILS
+// ============================================================
+function setEnv(e) {
+  STATE.env = e;
+  document.getElementById('btnPreprod').classList.toggle('active', e === 'preprod');
+  document.getElementById('btnProd').classList.toggle('active', e === 'prod');
+  document.getElementById('envLabel').textContent = e === 'preprod' ? 'PRÉPROD' : 'PROD';
+}
+
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function checkReady() {
+  const ok = token() && STATE.fileData;
+  document.getElementById('startBtn').disabled = !ok;
+}
+
+document.getElementById('apiToken').addEventListener('input', checkReady);
+
+function setPipeStep(n, status = 'active') {
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById('ps' + i);
+    el.className = 'pipe-step';
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add(status);
+    const pnum = el.querySelector('.pnum');
+    pnum.textContent = i < n ? '✓' : i;
+  }
+}
+
+function showStep(n) {
+  for (let i = 1; i <= 6; i++)
+    document.getElementById('step' + i).style.display = i === n ? 'block' : 'none';
+}
+
+function log(msg, type = 'info') {
+  const el = document.getElementById('demandeLog');
+  const ts = new Date().toLocaleTimeString('fr-FR');
+  const cls = { info: 'log-info', ok: 'log-ok', err: 'log-err', warn: 'log-warn', dim: 'log-dim' }[type] || 'log-info';
+  el.innerHTML += `<div><span class="log-dim">[${ts}]</span> <span class="${cls}">${msg}</span></div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setBar(id, pct, anim = false) {
+  const bar = document.getElementById(id);
+  bar.classList.toggle('anim', anim);
+  if (!anim) bar.style.width = pct + '%';
+}
+
+function showAlert(msg, type = 'info', target = 'globalAlert') {
+  const icons = { ok: '✓', err: '✗', warn: '⚠', info: 'ℹ' };
+  document.getElementById(target).innerHTML =
+    `<div class="alert alert-${type}">${icons[type] || 'ℹ'} ${msg}</div>`;
+}
+
+function hideAlert(target = 'globalAlert') {
+  document.getElementById(target).innerHTML = '';
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ============================================================
+// FILE HANDLING
+// ============================================================
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+  if (!file.name.endsWith('.pdf') && file.type !== 'application/pdf') {
+    showAlert('Seuls les PDF sont acceptés.', 'err'); return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    showAlert('Fichier trop volumineux (max 10 Mo).', 'err'); return;
+  }
+  hideAlert();
+  const reader = new FileReader();
+  reader.onload = ev => {
+    STATE.fileData = ev.target.result.split(',')[1];
+    STATE.fileName = file.name;
+    document.getElementById('fileChip').innerHTML =
+      `<span style="font-family:var(--mono);font-size:13px;color:var(--ok);font-weight:500">✓ ${file.name} — ${(file.size/1024).toFixed(0)} Ko</span>`;
+    checkReady();
+  };
+  reader.readAsDataURL(file);
+}
+
+// ============================================================
+// ASL API WRAPPER
+// ============================================================
+async function aslGet(path) {
+  const r = await fetch(baseUrl() + path, {
+    headers: {
+      'Authorization': `Bearer ${token()}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || `Erreur ${r.status} sur ${path}`);
+  return data;
+}
+
+async function aslPost(path, formData) {
+  const r = await fetch(baseUrl() + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token()}`,
+      'Accept': 'application/json'
+    },
+    body: formData
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || `Erreur ${r.status} sur POST ${path}`);
+  return data;
+}
+
+async function aslPut(path, formData = null) {
+  let opts = { headers: { 'Authorization': `Bearer ${token()}`, 'Accept': 'application/json' } };
+  if (formData) {
+    // multipart PUT via _method override
+    formData.append('_method', 'PUT');
+    opts.method = 'POST';
+    opts.body = formData;
+  } else {
+    opts.method = 'PUT';
+    opts.headers['Content-Type'] = 'application/json';
+  }
+  const r = await fetch(baseUrl() + path, opts);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || `Erreur ${r.status} sur PUT ${path}`);
+  return data;
+}
+
+// ============================================================
+// STEP 1 → 2 : START PIPELINE
+// ============================================================
+async function startPipeline() {
+  hideAlert();
+  document.getElementById('startBtn').disabled = true;
+  showStep(2);
+  setPipeStep(2);
+
+  // --- OCR via Claude ---
+  document.getElementById('ocrStatus').textContent = 'Envoi de la facture à Claude pour analyse...';
+  setBar('ocrBar', 0, true);
+
+  const prompt = `Tu es un assistant expert en extraction de données de factures de réparation.
+Analyse ce PDF et extrais les informations suivantes. Réponds UNIQUEMENT avec un objet JSON valide, sans backticks, sans texte avant ou après.
+
+{
+  "client_prenom": "Prénom du client",
+  "client_nom": "Nom de famille du client",
+  "client_email": "Email du client (format valide)",
+  "client_telephone": "Téléphone du client (format 0XXXXXXXXX)",
+  "client_code_postal": "Code postal du client",
+  "client_ville": "Ville du client",
+  "numero_facture": "Numéro de facture",
+  "date_reparation": "Date de réparation JJ/MM/AAAA",
+  "montant_total_ttc": "Montant total TTC en chiffres uniquement (ex: 145.67)",
+  "montant_eligible_ttc": "Montant éligible au soutien TTC en chiffres (ex: 120.00). Si non précisé, utiliser montant_total_ttc",
+  "produit_type": "Type de produit réparé (ex: cycle, vélo, trottinette, sac, équipement sportif...)",
+  "marque": "Marque du produit",
+  "description": "Description courte de la réparation"
+}
+
+Si une information est absente, mettre null. Répondre UNIQUEMENT avec le JSON.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: STATE.fileData } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error?.message || 'Erreur API Anthropic');
+
+    const raw = data.content.map(c => c.text || '').join('');
+    let parsed;
+    try { parsed = JSON.parse(raw.replace(/```json|```/g, '').trim()); }
+    catch(e) { throw new Error('OCR : réponse Claude non parseable. La facture est peut-être illisible.'); }
+
+    STATE.ocrData = parsed;
+    setBar('ocrBar', 100, false);
+    document.getElementById('ocrStatus').textContent = 'Extraction terminée — vérifiez et corrigez si nécessaire.';
+    document.getElementById('ocrBadge').textContent = 'Terminé';
+    document.getElementById('ocrBadge').className = 'badge badge-ok';
+
+    // Remplir les champs
+    const m = { ocr_prenom: 'client_prenom', ocr_nom: 'client_nom', ocr_email: 'client_email',
+      ocr_tel: 'client_telephone', ocr_cp: 'client_code_postal', ocr_ville: 'client_ville',
+      ocr_num_facture: 'numero_facture', ocr_date: 'date_reparation',
+      ocr_ttc: 'montant_total_ttc', ocr_eligible: 'montant_eligible_ttc',
+      ocr_description: 'description', ocr_produit_label: 'produit_type', ocr_marque: 'marque' };
+    for (const [id, key] of Object.entries(m)) {
+      const el = document.getElementById(id);
+      if (el) el.value = parsed[key] || '';
+    }
+    document.getElementById('ocrResult').style.display = 'block';
+
+  } catch(err) {
+    document.getElementById('ocrBadge').textContent = 'Erreur';
+    document.getElementById('ocrBadge').className = 'badge badge-err';
+    document.getElementById('ocrStatus').textContent = err.message;
+    setPipeStep(2, 'error');
+    showAlert('Erreur OCR : ' + err.message, 'err');
+    document.getElementById('startBtn').disabled = false;
+  }
+}
+
+// ============================================================
+// STEP 3 : PRODUITS
+// ============================================================
+async function goToStep3() {
+  // Récupérer données éditées
+  STATE.ocrData.client_prenom    = document.getElementById('ocr_prenom').value;
+  STATE.ocrData.client_nom       = document.getElementById('ocr_nom').value;
+  STATE.ocrData.client_email     = document.getElementById('ocr_email').value;
+  STATE.ocrData.client_telephone = document.getElementById('ocr_tel').value;
+  STATE.ocrData.client_code_postal = document.getElementById('ocr_cp').value;
+  STATE.ocrData.client_ville     = document.getElementById('ocr_ville').value;
+  STATE.ocrData.numero_facture   = document.getElementById('ocr_num_facture').value;
+  STATE.ocrData.montant_total_ttc   = document.getElementById('ocr_ttc').value;
+  STATE.ocrData.montant_eligible_ttc = document.getElementById('ocr_eligible').value;
+  STATE.ocrData.marque           = document.getElementById('ocr_marque').value;
+
+  showStep(3);
+  setPipeStep(3);
+  document.getElementById('prodBadge').textContent = 'Chargement...';
+
+  try {
+    const [prodResp, marqResp] = await Promise.all([
+      aslGet('/api/produits'),
+      aslGet('/api/marques')
+    ]);
+    STATE.produits = prodResp.data || [];
+    STATE.marques  = marqResp.data || [];
+
+    renderProduits();
+    renderMarques();
+    document.getElementById('prodBadge').textContent = STATE.produits.length + ' produits';
+    document.getElementById('prodBadge').className = 'badge badge-ok';
+    document.getElementById('marqueSection').style.display = 'block';
+
+  } catch(err) {
+    document.getElementById('prodBadge').textContent = 'Erreur';
+    document.getElementById('prodBadge').className = 'badge badge-err';
+    showAlert('Erreur chargement produits : ' + err.message, 'err');
+    setPipeStep(3, 'error');
+  }
+}
+
+function renderProduits() {
+  const ocrType = (STATE.ocrData.produit_type || '').toLowerCase();
+  const list = document.getElementById('produitList');
+  list.innerHTML = '';
+
+  STATE.produits.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'produit-item';
+    const bareme = p.bareme_soutiens || [];
+    const maxBonus = bareme.length ? bareme[bareme.length-1].montant_soutien : '?';
+    div.innerHTML = `
+      <div style="flex:1">
+        <div class="produit-label">${p.libelle}</div>
+        <div class="produit-bonus">${p.categorie} — bonus max : ${maxBonus} €</div>
+      </div>
+      <div class="badge badge-info" style="font-size:10px">ID ${p.id}</div>`;
+    div.onclick = () => selectProduit(p, div);
+
+    // Auto-sélection par correspondance
+    const label = p.libelle.toLowerCase();
+    if (ocrType && (label.includes(ocrType) || ocrType.includes(label.split(' ')[0]))) {
+      setTimeout(() => selectProduit(p, div), 100);
+    }
+    list.appendChild(div);
+  });
+}
+
+function selectProduit(p, el) {
+  document.querySelectorAll('.produit-item').forEach(d => d.classList.remove('selected'));
+  el.classList.add('selected');
+  STATE.selectedProduit = p;
+
+  // Bouton suivant
+  const existing = document.getElementById('prodConfirmBtn');
+  if (existing) existing.remove();
+  const btn = document.createElement('button');
+  btn.id = 'prodConfirmBtn';
+  btn.className = 'btn btn-primary';
+  btn.style.marginTop = '12px';
+  btn.textContent = `Utiliser "${p.libelle}" →`;
+  btn.onclick = () => goToStep4();
+  document.getElementById('produitList').appendChild(btn);
+}
+
+function renderMarques() {
+  const sel = document.getElementById('marqueSelect');
+  sel.innerHTML = '<option value="">-- Sélectionner une marque existante --</option>';
+  STATE.marques.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = m.libelle;
+    // Auto-match
+    if (STATE.ocrData.marque && m.libelle.toLowerCase() === STATE.ocrData.marque.toLowerCase()) {
+      opt.selected = true;
+    }
+    sel.appendChild(opt);
+  });
+  const newOpt = document.createElement('option');
+  newOpt.value = 'new'; newOpt.textContent = '+ Nouvelle marque...';
+  sel.appendChild(newOpt);
+
+  sel.addEventListener('change', () => {
+    const isNew = sel.value === 'new';
+    document.getElementById('marqueNewField').style.display = isNew ? 'block' : 'none';
+    if (!isNew && STATE.ocrData.marque && sel.value === '') {
+      document.getElementById('marqueNew').value = STATE.ocrData.marque;
+    }
+  });
+
+  // Si marque non trouvée, pré-remplir champ nouvelle marque
+  if (sel.value === '') {
+    document.getElementById('marqueNew').value = STATE.ocrData.marque || '';
+  }
+}
+
+// ============================================================
+// STEP 4 : CLIENT
+// ============================================================
+async function goToStep4() {
+  // Récupérer marque choisie
+  const sel = document.getElementById('marqueSelect');
+  if (sel.value === 'new' || sel.value === '') {
+    STATE.selectedMarqueId = null;
+    STATE.selectedMarqueNew = document.getElementById('marqueNew').value.trim() || STATE.ocrData.marque;
+  } else {
+    STATE.selectedMarqueId = sel.value;
+    STATE.selectedMarqueNew = null;
+  }
+
+  showStep(4);
+  setPipeStep(4);
+
+  // Pré-remplir client
+  document.getElementById('cl_prenom').value = STATE.ocrData.client_prenom || '';
+  document.getElementById('cl_nom').value    = STATE.ocrData.client_nom || '';
+  document.getElementById('cl_email').value  = STATE.ocrData.client_email || '';
+  document.getElementById('cl_tel').value    = STATE.ocrData.client_telephone || '';
+  document.getElementById('cl_cp').value     = STATE.ocrData.client_code_postal || '';
+  document.getElementById('cl_ville').value  = STATE.ocrData.client_ville || '';
+
+  const email = STATE.ocrData.client_email;
+  const badge = document.getElementById('clientBadge');
+  const status = document.getElementById('clientStatus');
+
+  if (email && email.includes('@')) {
+    status.textContent = `Recherche du client par email : ${email}...`;
+    try {
+      const res = await aslGet(`/api/clients?f_email=${encodeURIComponent(email)}`);
+      if (res.data && res.data.length > 0) {
+        STATE.clientId = res.data[0].id;
+        document.getElementById('cl_id').value = STATE.clientId;
+        badge.textContent = `Client trouvé (ID ${STATE.clientId})`;
+        badge.className = 'badge badge-ok';
+        status.textContent = `✓ Client existant trouvé. Les champs sont pré-remplis depuis l'OCR — vous pouvez les corriger.`;
+      } else {
+        STATE.clientId = null;
+        badge.textContent = 'Nouveau client';
+        badge.className = 'badge badge-warn';
+        status.textContent = 'Aucun client trouvé avec cet email. Un nouveau compte client sera créé.';
+      }
+    } catch(e) {
+      STATE.clientId = null;
+      badge.textContent = 'Nouveau client';
+      badge.className = 'badge badge-warn';
+      status.textContent = 'Impossible de vérifier l\'email. Un nouveau client sera créé.';
+    }
+  } else {
+    badge.textContent = 'Email manquant';
+    badge.className = 'badge badge-err';
+    status.textContent = '⚠ Email non trouvé dans la facture. Veuillez le saisir manuellement — il est obligatoire.';
+  }
+}
+
+async function confirmClient() {
+  // Récupérer valeurs éditées
+  STATE.ocrData.client_prenom      = document.getElementById('cl_prenom').value.trim();
+  STATE.ocrData.client_nom         = document.getElementById('cl_nom').value.trim();
+  STATE.ocrData.client_email       = document.getElementById('cl_email').value.trim();
+  STATE.ocrData.client_telephone   = document.getElementById('cl_tel').value.trim();
+  STATE.ocrData.client_code_postal = document.getElementById('cl_cp').value.trim();
+  STATE.ocrData.client_ville       = document.getElementById('cl_ville').value.trim();
+
+  if (!STATE.ocrData.client_email || !STATE.ocrData.client_email.includes('@')) {
+    showAlert('L\'email du client est obligatoire et doit être valide.', 'err');
+    return;
+  }
+
+  goToStep5();
+}
+
+// ============================================================
+// STEP 5 : CREATE → UPDATE → SUBMIT
+// ============================================================
+async function goToStep5() {
+  showStep(5);
+  setPipeStep(5);
+  document.getElementById('demandeBadge').textContent = 'En cours...';
+  document.getElementById('demandeBadge').className = 'badge badge-info';
+
+  try {
+    // --- Charger sites de réparation ---
+    log('Chargement des sites de réparation...', 'dim');
+    const sitesResp = await aslGet('/api/site-reparations');
+    STATE.siteReparations = sitesResp.data || [];
+    const siteId = STATE.siteReparations.length > 0 ? STATE.siteReparations[0].id : null;
+    log(`Sites disponibles : ${STATE.siteReparations.length} (utilisation ID ${siteId})`, 'dim');
+
+    // --- 5.1 : CRÉER LA DEMANDE ---
+    log('Étape 1/3 — Création de la demande...', 'info');
+    setBar('demandeBar', 10);
+
+    const fd1 = new FormData();
+    fd1.append('produit_id', STATE.selectedProduit.id);
+    if (STATE.selectedMarqueId) fd1.append('marque_id', STATE.selectedMarqueId);
+    else if (STATE.selectedMarqueNew) fd1.append('marque', STATE.selectedMarqueNew);
+    if (STATE.ocrData.montant_eligible_ttc) fd1.append('devis_montant_ttc', STATE.ocrData.montant_eligible_ttc);
+
+    if (STATE.clientId) {
+      fd1.append('client_id', STATE.clientId);
+    } else {
+      fd1.append('client[nom]',         STATE.ocrData.client_nom || '');
+      fd1.append('client[prenom]',      STATE.ocrData.client_prenom || '');
+      fd1.append('client[email]',       STATE.ocrData.client_email || '');
+      fd1.append('client[code_postal]', STATE.ocrData.client_code_postal || '');
+      fd1.append('client[ville]',       STATE.ocrData.client_ville || '');
+      fd1.append('client[telephone]',   STATE.ocrData.client_telephone || '');
+    }
+
+    // Attributs cycle si produit = cycles
+    if (STATE.selectedProduit.libelle.toLowerCase().includes('cycle') ||
+        STATE.selectedProduit.libelle.toLowerCase().includes('vélo')) {
+      fd1.append('attributs[type-de-velo]', '1'); // mécanique par défaut
+    }
+
+    const demande = await aslPost('/api/demandes', fd1);
+    STATE.demandeId   = demande.id;
+    STATE.demandeCode = demande.code_unique;
+    log(`✓ Demande créée — ID: ${demande.id} | Code: ${demande.code_unique}`, 'ok');
+    setBar('demandeBar', 40);
+
+    // --- 5.2 : METTRE À JOUR avec facture ---
+    log('Étape 2/3 — Mise à jour avec les données réelles et la facture...', 'info');
+
+    const fd2 = new FormData();
+    fd2.append('reel_total_eligible_ttc', STATE.ocrData.montant_eligible_ttc || STATE.ocrData.montant_total_ttc || '0');
+    fd2.append('montant_ttc',             STATE.ocrData.montant_total_ttc || '0');
+    if (STATE.ocrData.numero_facture) fd2.append('numero_facture', STATE.ocrData.numero_facture);
+    if (siteId) fd2.append('reparation_lieu_reparateur_id', siteId);
+
+    // Convertir le PDF base64 en Blob pour l'upload
+    const pdfBlob = b64toBlob(STATE.fileData, 'application/pdf');
+    fd2.append('facture', pdfBlob, STATE.fileName || 'facture.pdf');
+
+    const updated = await aslPost(`/api/demandes/${STATE.demandeId}`, fd2);
+    const soutien = updated.reel_cout_soutien_ttc;
+    log(`✓ Demande mise à jour — Soutien calculé : ${soutien} €`, 'ok');
+    setBar('demandeBar', 75);
+
+    // --- 5.3 : SOUMETTRE ou CLORE ---
+    const soutienVal = parseFloat(String(soutien).replace(',', '.'));
+    if (soutienVal > 0) {
+      log('Étape 3/3 — Soumission au remboursement...', 'info');
+      const submitted = await aslPut(`/api/demandes/${STATE.demandeId}/submit`);
+      setBar('demandeBar', 100);
+      log(`✓ Demande soumise avec succès ! Statut : ${submitted.statut}`, 'ok');
+      document.getElementById('demandeBadge').textContent = 'Soumise ✓';
+      document.getElementById('demandeBadge').className = 'badge badge-ok';
+      showFinalResult(submitted);
+    } else {
+      log('⚠ Soutien calculé = 0 € — Clôture de la demande sans soumission.', 'warn');
+      await aslPut(`/api/demandes/${STATE.demandeId}/close`);
+      setBar('demandeBar', 100);
+      log('Demande clôturée (montant insuffisant pour le soutien).', 'warn');
+      document.getElementById('demandeBadge').textContent = 'Clôturée';
+      document.getElementById('demandeBadge').className = 'badge badge-warn';
+      showAlert(`La demande ${STATE.demandeCode} a été clôturée car le montant de soutien est 0 €. Vérifiez les montants.`, 'warn');
+    }
+
+  } catch(err) {
+    log('✗ ERREUR : ' + err.message, 'err');
+    document.getElementById('demandeBadge').textContent = 'Erreur';
+    document.getElementById('demandeBadge').className = 'badge badge-err';
+    setPipeStep(5, 'error');
+    showAlert('Erreur lors du traitement : ' + err.message, 'err');
+  }
+}
+
+function showFinalResult(d) {
+  setPipeStep(6);
+  showStep(6);
+
+  const lienProd = STATE.env === 'preprod'
+    ? 'https://asl-pp.reparateur-bonusrepar.fr/compte'
+    : 'https://asl.reparateur-bonusrepar.fr/compte';
+  document.getElementById('lienPlateforme').href = lienProd;
+
+  document.getElementById('finalResult').innerHTML = `
+    <div class="alert alert-ok" style="margin-bottom:1rem">
+      ✓ La demande <strong>${d.code_unique}</strong> a été soumise avec succès sur ${STATE.env === 'preprod' ? 'la PRÉPROD' : 'la PRODUCTION'}.
+    </div>
+    <div class="result-row"><span class="result-label">Code unique</span><span class="result-val">${d.code_unique}</span></div>
+    <div class="result-row"><span class="result-label">Client</span><span class="result-val">${d.prenom || ''} ${d.nom || ''}</span></div>
+    <div class="result-row"><span class="result-label">Produit ID</span><span class="result-val">${d.produit_id}</span></div>
+    <div class="result-row"><span class="result-label">Montant TTC</span><span class="result-val">${d.montant_ttc} €</span></div>
+    <div class="result-row"><span class="result-label">Coût éligible TTC</span><span class="result-val">${d.reel_total_eligible_ttc} €</span></div>
+    <div class="result-row"><span class="result-label">Bonus accordé</span><span class="result-val big">${d.reel_cout_soutien_ttc} €</span></div>
+    <div class="result-row"><span class="result-label">Statut</span><span class="result-val"><span class="badge badge-ok">${d.display_statut || d.statut}</span></span></div>
+    <div class="result-row"><span class="result-label">N° Facture</span><span class="result-val">${d.numero_facture || '—'}</span></div>
+  `;
+  toast('✓ Demande soumise avec succès !');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function b64toBlob(b64Data, contentType = '', sliceSize = 512) {
+  const byteCharacters = atob(b64Data);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) byteNumbers[i] = slice.charCodeAt(i);
+    byteArrays.push(new Uint8Array(byteNumbers));
+  }
+  return new Blob(byteArrays, { type: contentType });
+}
+
+function resetAll() {
+  STATE = { env: STATE.env, fileData: n
