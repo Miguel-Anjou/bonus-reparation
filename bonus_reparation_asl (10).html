@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bonus Réparation ASL</title>
+<style>
+:root{--bg:#f7f6f2;--sf:#fff;--s2:#f0ede7;--br:#ddd9d0;--tx:#1c1a17;--mu:#78736a;--ac:#1d5c35;--ab:#e6f2eb;--abr:#a8d4b8;--wb:#fef8e7;--w:#7a5800;--wbr:#f0d080;--eb:#fdeaea;--er:#8b1a1a;--ebr:#f0aaaa;--r:8px;--rs:5px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6;padding:.75rem;}
+.hdr{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:.65rem 1rem;margin-bottom:.75rem;display:flex;align-items:center;justify-content:space-between;}
+.etog{display:flex;border:1px solid var(--br);border-radius:var(--rs);overflow:hidden;}
+.ebtn{padding:3px 12px;font-size:11px;background:none;border:none;cursor:pointer;color:var(--mu);}
+.ebtn.act{background:var(--ac);color:#fff;}
+.pipe{display:flex;background:var(--sf);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:.75rem;}
+.ps{flex:1;padding:8px 6px;font-size:10px;color:var(--mu);border-right:1px solid var(--br);display:flex;align-items:center;gap:5px;}
+.ps:last-child{border-right:none;}
+.ps.act{color:var(--tx);background:var(--ab);font-weight:500;}
+.ps.done{color:var(--ac);}
+.ps.err{color:var(--er);background:var(--eb);}
+.pn{width:15px;height:15px;border-radius:50%;font-size:9px;font-weight:700;background:var(--s2);border:1px solid var(--br);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ps.act .pn,.ps.done .pn{background:var(--ac);color:#fff;border-color:var(--ac);}
+.ps.err .pn{background:var(--er);color:#fff;border-color:var(--er);}
+.card{background:var(--sf);border:1px solid var(--br);border-radius:var(--r);padding:.9rem 1rem;margin-bottom:.6rem;}
+.ct{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);padding-bottom:7px;margin-bottom:.7rem;border-bottom:1px solid var(--br);display:flex;align-items:center;justify-content:space-between;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.f{display:flex;flex-direction:column;gap:3px;}
+.f.full{grid-column:1/-1;}
+.f label{font-size:10px;font-weight:600;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;}
+.f input,.f select,.f textarea{font-family:inherit;font-size:12px;background:var(--s2);border:1px solid var(--br);border-radius:var(--rs);padding:5px 8px;color:var(--tx);outline:none;}
+.f input:focus,.f select:focus{border-color:var(--ac);}
+.f textarea{resize:vertical;min-height:48px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--rs);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--br);background:var(--sf);color:var(--tx);}
+.btn:hover:not(:disabled){background:var(--s2);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.bp{background:var(--ac);color:#fff;border-color:var(--ac);}
+.bp:hover:not(:disabled){background:#164d2b;}
+.bg{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-top:.6rem;}
+.alert{padding:8px 12px;border-radius:var(--rs);font-size:12px;margin-bottom:7px;}
+.aok{background:var(--ab);color:var(--ac);border:1px solid var(--abr);}
+.aerr{background:var(--eb);color:var(--er);border:1px solid var(--ebr);}
+.awarn{background:var(--wb);color:var(--w);border:1px solid var(--wbr);}
+.badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;}
+.bok{background:var(--ab);color:var(--ac);border:1px solid var(--abr);}
+.bwarn{background:var(--wb);color:var(--w);border:1px solid var(--wbr);}
+.berr{background:var(--eb);color:var(--er);border:1px solid var(--ebr);}
+.binfo{background:var(--ab);color:var(--ac);border:1px solid var(--abr);}
+.log{background:#1a1a1a;color:#d4d0c8;font-family:monospace;font-size:11px;border-radius:var(--r);padding:10px;max-height:200px;overflow-y:auto;line-height:1.7;margin-top:7px;}
+.lok{color:#7ec880;}.lerr{color:#f08080;}.lwarn{color:#f0c060;}.linfo{color:#80c8f0;}.ldim{color:#555;}
+.prog{height:3px;background:var(--s2);border-radius:2px;overflow:hidden;margin:5px 0;}
+.pbar{height:100%;background:var(--ac);border-radius:2px;transition:width .4s;}
+.pbar.anim{width:40%;animation:sl 1.3s ease-in-out infinite;}
+@keyframes sl{0%{transform:translateX(-150%)}100%{transform:translateX(300%)}}
+.pi{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:var(--rs);cursor:pointer;border:1px solid var(--br);margin-bottom:4px;background:var(--sf);}
+.pi:hover,.pi.sel{border-color:var(--ac);background:var(--ab);}
+.rr{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--br);font-size:12px;}
+.rr:last-child{border-bottom:none;}
+.rl{color:var(--mu);}
+.rv{font-weight:600;font-family:monospace;}
+.rv.big{font-size:16px;color:var(--ac);}
+.upload-btn{width:100%;padding:14px;font-size:15px;justify-content:center;background:var(--ac);color:#fff;border-color:var(--ac);border-radius:var(--rs);cursor:pointer;display:flex;align-items:center;gap:8px;border:none;font-family:inherit;font-weight:500;}
+.upload-btn:hover{background:#164d2b;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div style="font-weight:600;font-size:14px">⚙ Bonus Réparation ASL</div>
+    <div style="font-size:10px;color:var(--mu)">OCR Mistral → Soumission automatique API ASL</div>
+  </div>
+  <div class="etog">
+    <button class="ebtn act" id="btnPP" onclick="setEnv('preprod')">PRÉPROD</button>
+    <button class="ebtn" id="btnPd" onclick="setEnv('prod')">PROD</button>
+  </div>
+</div>
+
+<div class="pipe">
+  <div class="ps act" id="ps1"><div class="pn">1</div>Config</div>
+  <div class="ps" id="ps2"><div class="pn">2</div>OCR</div>
+  <div class="ps" id="ps3"><div class="pn">3</div>Produit</div>
+  <div class="ps" id="ps4"><div class="pn">4</div>Client</div>
+  <div class="ps" id="ps5"><div class="pn">5</div>Demande</div>
+  <div class="ps" id="ps6"><div class="pn">6</div>Résultat</div>
+</div>
+
+<div id="gA"></div>
+
+<!-- ST1 -->
+<div id="st1">
+  <div class="card">
+    <div class="ct">Configuration</div>
+    <div class="fg">
+      <div class="f full">
+        <label>Token API ASL (Bearer — fourni par Ecologic)</label>
+        <div style="position:relative">
+          <input type="password" id="tokASL" placeholder="votre-token-ecologic" style="width:100%;padding-right:30px" oninput="chk()"/>
+          <button onclick="tv('tokASL')" style="position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mu);font-size:11px">👁</button>
+        </div>
+      </div>
+      <div class="f full">
+        <label>Clé API Mistral (OCR — gratuite sur console.mistral.ai)</label>
+        <div style="position:relative">
+          <input type="password" id="tokMistral" placeholder="votre-cle-mistral" style="width:100%;padding-right:30px" oninput="chk()"/>
+          <button onclick="tv('tokMistral')" style="position:absolute;right:7px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mu);font-size:11px">👁</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:5px;font-size:10px;color:var(--mu)">
+      Token ASL → <a href="mailto:support@asl.bonusrepar.fr" style="color:var(--ac)">support@asl.bonusrepar.fr</a> &nbsp;|&nbsp;
+      Clé Mistral → <a href="https://console.mistral.ai" target="_blank" style="color:var(--ac)">console.mistral.ai</a> (gratuit) &nbsp;|&nbsp;
+      Env : <span id="envL" style="font-weight:700">PRÉPROD</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">Facture PDF</div>
+    <input type="file" id="fi" accept=".pdf" style="display:none" onchange="onFi(this)"/>
+    <button class="upload-btn" onclick="document.getElementById('fi').click()">
+      📂 Cliquer pour choisir la facture PDF
+    </button>
+    <div id="fC" style="margin-top:8px;font-size:11px;color:var(--mu);text-align:center">Aucun fichier sélectionné</div>
+  </div>
+
+  <div class="bg">
+    <button class="btn bp" id="goBtn" onclick="go()" disabled style="font-size:13px;padding:9px 22px;">
+      Lancer l'analyse et la soumission →
+    </button>
+  </div>
+</div>
+
+<!-- ST2 OCR -->
+<div id="st2" style="display:none">
+  <div class="card">
+    <div class="ct"><span>Analyse OCR (Mistral)</span><span class="badge binfo" id="oB">En cours...</span></div>
+    <div class="prog"><div class="pbar anim" id="oBar"></div></div>
+    <div id="oMsg" style="font-size:11px;color:var(--mu);margin-top:4px">Envoi à Mistral...</div>
+    <div id="oFrm" style="display:none;margin-top:.8rem">
+      <div class="fg">
+        <div class="f"><label>Prénom</label><input id="o_pre"/></div>
+        <div class="f"><label>Nom</label><input id="o_nom"/></div>
+        <div class="f full"><label>Email</label><input id="o_eml"/></div>
+        <div class="f"><label>Téléphone</label><input id="o_tel"/></div>
+        <div class="f"><label>Code postal</label><input id="o_cp"/></div>
+        <div class="f"><label>Ville</label><input id="o_vil"/></div>
+        <div class="f"><label>N° facture</label><input id="o_fac"/></div>
+        <div class="f"><label>Date réparation</label><input id="o_dat"/></div>
+        <div class="f"><label>Montant TTC (€)</label><input id="o_ttc"/></div>
+        <div class="f"><label>Montant éligible (€)</label><input id="o_eli"/></div>
+        <div class="f full"><label>Description</label><textarea id="o_des"></textarea></div>
+        <div class="f"><label>Type produit</label><input id="o_prd"/></div>
+        <div class="f"><label>Marque</label><input id="o_mrq"/></div>
+      </div>
+      <div class="bg">
+        <button class="btn bp" onclick="goS3()">Confirmer →</button>
+        <button class="btn" onclick="rst()">Recommencer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ST3 Produit -->
+<div id="st3" style="display:none">
+  <div class="card">
+    <div class="ct"><span>Produit ASL</span><span class="badge binfo" id="pB">Chargement...</span></div>
+    <div id="pL"></div>
+    <div id="mS" style="display:none;margin-top:8px">
+      <div class="fg">
+        <div class="f"><label>Marque</label>
+          <select id="mSel" style="width:100%" onchange="onMC()"><option value="">-- Sélectionner --</option></select>
+        </div>
+        <div class="f" id="mNF" style="display:none"><label>Nouvelle marque</label><input id="mNew" placeholder="ex: PEUGEOT"/></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ST4 Client -->
+<div id="st4" style="display:none">
+  <div class="card">
+    <div class="ct"><span>Client</span><span class="badge binfo" id="cB">Recherche...</span></div>
+    <div id="cMsg" style="font-size:11px;color:var(--mu);margin-bottom:7px"></div>
+    <div class="fg">
+      <div class="f"><label>Prénom</label><input id="cl_p"/></div>
+      <div class="f"><label>Nom</label><input id="cl_n"/></div>
+      <div class="f full"><label>Email</label><input id="cl_e"/></div>
+      <div class="f"><label>Téléphone</label><input id="cl_t"/></div>
+      <div class="f"><label>Code postal</label><input id="cl_c"/></div>
+      <div class="f"><label>Ville</label><input id="cl_v"/></div>
+    </div>
+    <div class="bg"><button class="btn bp" onclick="confCli()">Confirmer le client →</button></div>
+  </div>
+</div>
+
+<!-- ST5 Traitement -->
+<div id="st5" style="display:none">
+  <div class="card">
+    <div class="ct"><span>Traitement API ASL</span><span class="badge binfo" id="dB">En cours...</span></div>
+    <div id="logB" class="log"></div>
+    <div class="prog"><div class="pbar" id="dBar" style="width:0"></div></div>
+  </div>
+</div>
+
+<!-- ST6 Résultat -->
+<div id="st6" style="display:none">
+  <div class="card">
+    <div class="ct"><span>Demande soumise</span><span class="badge bok">✓ Succès</span></div>
+    <div id="fRes"></div>
+    <div class="bg" style="margin-top:.8rem">
+      <button class="btn bp" onclick="rst()">Nouvelle facture</button>
+      <a id="lP" href="#" target="_blank" class="btn" style="text-decoration:none">Voir sur la plateforme →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const S={env:'preprod',fd:null,fn:null,ocr:null,prods:[],marqs:[],prod:null,mId:null,mNew:null,cliId:null,demId:null,demCode:null,sites:[]};
+const URLS={preprod:'https://asl-pp.reparateur-bonusrepar.fr',prod:'https://asl.reparateur-bonusrepar.fr'};
+const PROXY='https://corsproxy.io/?url=';
+const base=()=>PROXY+encodeURIComponent(URLS[S.env]);
+const tokASL=()=>document.getElementById('tokASL').value.trim();
+const tokM=()=>document.getElementById('tokMistral').value.trim();
+
+function setEnv(e){S.env=e;document.getElementById('btnPP').classList.toggle('act',e==='preprod');document.getElementById('btnPd').classList.toggle('act',e==='prod');document.getElementById('envL').textContent=e==='preprod'?'PRÉPROD':'PROD';}
+function tv(id){const el=document.getElementById(id);el.type=el.type==='password'?'text':'password';}
+function chk(){document.getElementById('goBtn').disabled=!(tokASL()&&tokM()&&S.fd);}
+
+function onFi(inp){
+  const f=inp.files[0];if(!f)return;
+  if(!f.name.endsWith('.pdf')&&f.type!=='application/pdf'){gA('Seuls les PDF sont acceptés.','aerr');return;}
+  if(f.size>10*1024*1024){gA('Max 10 Mo.','aerr');return;}
+  hA();
+  const r=new FileReader();
+  r.onload=ev=>{S.fd=ev.target.result.split(',')[1];S.fn=f.name;document.getElementById('fC').innerHTML=`<span style="color:var(--ac);font-weight:600">✓ ${f.name} — ${(f.size/1024).toFixed(0)} Ko</span>`;chk();};
+  r.readAsDataURL(f);
+}
+
+function showSt(n){for(let i=1;i<=6;i++)document.getElementById('st'+i).style.display=i===n?'block':'none';}
+function setPipe(n,st='act'){for(let i=1;i<=6;i++){const el=document.getElementById('ps'+i);el.className='ps'+(i<n?' done':i===n?' '+st:'');el.querySelector('.pn').textContent=i<n?'✓':i;}}
+function gA(msg,cls){document.getElementById('gA').innerHTML=`<div class="alert ${cls}">${msg}</div>`;}
+function hA(){document.getElementById('gA').innerHTML='';}
+function lg(msg,t='info'){const el=document.getElementById('logB');const ts=new Date().toLocaleTimeString('fr-FR');const cls={info:'linfo',ok:'lok',err:'lerr',warn:'lwarn',dim:'ldim'}[t]||'linfo';el.innerHTML+=`<div><span class="ldim">[${ts}]</span> <span class="${cls}">${msg}</span></div>`;el.scrollTop=el.scrollHeight;}
+function sBar(id,pct,anim=false){const b=document.getElementById(id);b.classList.toggle('anim',anim);if(!anim)b.style.width=pct+'%';}
+
+// ASL API via proxy CORS
+async function aGet(path){
+  const r=await fetch(base()+encodeURIComponent(path),{headers:{'Authorization':`Bearer ${tokASL()}`,'Accept':'application/json','x-requested-with':'XMLHttpRequest'}});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||`Err ${r.status}`);return d;
+}
+async function aPost(path,fd){
+  const r=await fetch(base()+encodeURIComponent(path),{method:'POST',headers:{'Authorization':`Bearer ${tokASL()}`,'Accept':'application/json','x-requested-with':'XMLHttpRequest'},body:fd});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||`Err ${r.status}`);return d;
+}
+async function aPut(path){
+  const r=await fetch(base()+encodeURIComponent(path),{method:'PUT',headers:{'Authorization':`Bearer ${tokASL()}`,'Accept':'application/json','Content-Type':'application/json','x-requested-with':'XMLHttpRequest'},body:'{}'});
+  const d=await r.json();if(!r.ok)throw new Error(d.message||`Err ${r.status}`);return d;
+}
+
+// OCR via Mistral Files API
+async function ocrMistral(pdfB64){
+  // 1. Upload fichier
+  const blob=b64B(pdfB64,'application/pdf');
+  const fd=new FormData();fd.append('purpose','ocr');fd.append('file',blob,'facture.pdf');
+  const r1=await fetch('https://api.mistral.ai/v1/files',{method:'POST',headers:{'Authorization':`Bearer ${tokM()}`},body:fd});
+  const f1=await r1.json();
+  if(!r1.ok)throw new Error('Upload Mistral: '+(f1.message||JSON.stringify(f1)));
+  const fileId=f1.id;
+
+  // 2. Obtenir URL signee
+  const r2=await fetch(`https://api.mistral.ai/v1/files/${fileId}/url?expiry=1`,{headers:{'Authorization':`Bearer ${tokM()}`,'Accept':'application/json'}});
+  const f2=await r2.json();
+  if(!r2.ok)throw new Error('URL Mistral: '+(f2.message||JSON.stringify(f2)));
+  const signedUrl=f2.url;
+
+  // 3. Analyser avec chat
+  const prompt=`Analyse cette facture de reparation et reponds UNIQUEMENT avec un JSON valide (sans backticks) :
+{"client_prenom":"prenom","client_nom":"NOM","client_email":"email@domaine.fr","client_telephone":"0XXXXXXXXX","client_code_postal":"XXXXX","client_ville":"Ville","numero_facture":"N°","date_reparation":"JJ/MM/AAAA","montant_total_ttc":"145.67","montant_eligible_ttc":"120.00","produit_type":"cycle","marque":"PEUGEOT","description":"description courte"}
+null si absent.`;
+
+  const r3=await fetch('https://api.mistral.ai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Authorization':`Bearer ${tokM()}`,'Content-Type':'application/json'},
+    body:JSON.stringify({model:'mistral-small-latest',messages:[{role:'user',content:[
+      {type:'document_url',document_url:signedUrl},
+      {type:'text',text:prompt}
+    ]}]})
+  });
+  const f3=await r3.json();
+  if(!r3.ok)throw new Error('Chat Mistral: '+(f3.message||JSON.stringify(f3)));
+
+  // 4. Supprimer fichier
+  fetch(`https://api.mistral.ai/v1/files/${fileId}`,{method:'DELETE',headers:{'Authorization':`Bearer ${tokM()}`}}).catch(()=>{});
+
+  const raw=f3.choices[0].message.content.replace(/```json|```/g,'').trim();
+  return JSON.parse(raw);
+}
+
+async function go(){
+  hA();document.getElementById('goBtn').disabled=true;
+  showSt(2);setPipe(2);
+  document.getElementById('oMsg').textContent='Envoi du PDF à Mistral pour analyse...';
+  sBar('oBar',0,true);
+  try{
+    const ocr=await ocrMistral(S.fd);
+    S.ocr=ocr;
+    sBar('oBar',100,false);
+    document.getElementById('oMsg').textContent='Extraction terminée — corrigez si nécessaire.';
+    document.getElementById('oB').textContent='Terminé';document.getElementById('oB').className='badge bok';
+    const m={o_pre:'client_prenom',o_nom:'client_nom',o_eml:'client_email',o_tel:'client_telephone',o_cp:'client_code_postal',o_vil:'client_ville',o_fac:'numero_facture',o_dat:'date_reparation',o_ttc:'montant_total_ttc',o_eli:'montant_eligible_ttc',o_des:'description',o_prd:'produit_type',o_mrq:'marque'};
+    for(const[id,k]of Object.entries(m)){const el=document.getElementById(id);if(el)el.value=ocr[k]||'';}
+    document.getElementById('oFrm').style.display='block';
+  }catch(err){
+    document.getElementById('oB').textContent='Erreur';document.getElementById('oB').className='badge berr';
+    document.getElementById('oMsg').textContent=err.message;
+    setPipe(2,'err');gA('Erreur OCR : '+err.message,'aerr');
+    document.getElementById('goBtn').disabled=false;
+  }
+}
+
+async function goS3(){
+  S.ocr.client_prenom=document.getElementById('o_pre').value;S.ocr.client_nom=document.getElementById('o_nom').value;S.ocr.client_email=document.getElementById('o_eml').value;S.ocr.client_telephone=document.getElementById('o_tel').value;S.ocr.client_code_postal=document.getElementById('o_cp').value;S.ocr.client_ville=document.getElementById('o_vil').value;S.ocr.numero_facture=document.getElementById('o_fac').value;S.ocr.montant_total_ttc=document.getElementById('o_ttc').value;S.ocr.montant_eligible_ttc=document.getElementById('o_eli').value;S.ocr.marque=document.getElementById('o_mrq').value;
+  showSt(3);setPipe(3);
+  try{
+    const[pr,mr]=await Promise.all([aGet('/api/produits'),aGet('/api/marques')]);
+    S.prods=pr.data||[];S.marqs=mr.data||[];
+    rndProds();rndMarqs();
+    document.getElementById('pB').textContent=S.prods.length+' produits';document.getElementById('pB').className='badge bok';
+    document.getElementById('mS').style.display='block';
+  }catch(err){document.getElementById('pB').textContent='Erreur';document.getElementById('pB').className='badge berr';gA('Erreur produits : '+err.message,'aerr');setPipe(3,'err');}
+}
+
+function rndProds(){
+  const ot=(S.ocr.produit_type||'').toLowerCase();
+  const list=document.getElementById('pL');list.innerHTML='';
+  S.prods.forEach(p=>{
+    const div=document.createElement('div');div.className='pi';
+    const bar=p.bareme_soutiens||[];const mx=bar.length?bar[bar.length-1].montant_soutien:'?';
+    div.innerHTML=`<div style="flex:1"><div style="font-size:12px;font-weight:500">${p.libelle}</div><div style="font-size:10px;color:var(--mu)">${p.categorie} — bonus max ${mx} €</div></div><span class="badge binfo">ID ${p.id}</span>`;
+    div.onclick=()=>selP(p,div);
+    if(ot&&p.libelle.toLowerCase().includes(ot.split(' ')[0]))setTimeout(()=>selP(p,div),100);
+    list.appendChild(div);
+  });
+}
+function selP(p,el){document.querySelectorAll('.pi').forEach(d=>d.classList.remove('sel'));el.classList.add('sel');S.prod=p;const ex=document.getElementById('pCB');if(ex)ex.remove();const btn=document.createElement('button');btn.id='pCB';btn.className='btn bp';btn.style.marginTop='8px';btn.textContent=`Utiliser "${p.libelle}" →`;btn.onclick=()=>goS4();document.getElementById('pL').appendChild(btn);}
+function rndMarqs(){const sel=document.getElementById('mSel');sel.innerHTML='<option value="">-- Sélectionner --</option>';S.marqs.forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.libelle;if(S.ocr.marque&&m.libelle.toLowerCase()===S.ocr.marque.toLowerCase())o.selected=true;sel.appendChild(o);});const no=document.createElement('option');no.value='new';no.textContent='+ Nouvelle marque...';sel.appendChild(no);if(sel.value==='')document.getElementById('mNew').value=S.ocr.marque||'';}
+function onMC(){document.getElementById('mNF').style.display=document.getElementById('mSel').value==='new'?'block':'none';}
+
+async function goS4(){
+  const sel=document.getElementById('mSel');
+  if(sel.value==='new'||sel.value===''){S.mId=null;S.mNew=document.getElementById('mNew').value.trim()||S.ocr.marque;}
+  else{S.mId=sel.value;S.mNew=null;}
+  showSt(4);setPipe(4);
+  document.getElementById('cl_p').value=S.ocr.client_prenom||'';document.getElementById('cl_n').value=S.ocr.client_nom||'';document.getElementById('cl_e').value=S.ocr.client_email||'';document.getElementById('cl_t').value=S.ocr.client_telephone||'';document.getElementById('cl_c').value=S.ocr.client_code_postal||'';document.getElementById('cl_v').value=S.ocr.client_ville||'';
+  const email=S.ocr.client_email;const badge=document.getElementById('cB');const msg=document.getElementById('cMsg');
+  if(email&&email.includes('@')){
+    msg.textContent=`Recherche : ${email}...`;
+    try{const res=await aGet(`/api/clients?f_email=${encodeURIComponent(email)}`);if(res.data&&res.data.length>0){S.cliId=res.data[0].id;badge.textContent=`Existant (ID ${S.cliId})`;badge.className='badge bok';msg.textContent='✓ Client trouvé.';}else{S.cliId=null;badge.textContent='Nouveau';badge.className='badge bwarn';msg.textContent='Nouveau client sera créé.';}}
+    catch(e){S.cliId=null;badge.textContent='Nouveau';badge.className='badge bwarn';msg.textContent='Nouveau client sera créé.';}
+  }else{badge.textContent='Email manquant';badge.className='badge berr';msg.textContent='⚠ Saisir email (obligatoire).';}
+}
+
+async function confCli(){
+  S.ocr.client_prenom=document.getElementById('cl_p').value.trim();S.ocr.client_nom=document.getElementById('cl_n').value.trim();S.ocr.client_email=document.getElementById('cl_e').value.trim();S.ocr.client_telephone=document.getElementById('cl_t').value.trim();S.ocr.client_code_postal=document.getElementById('cl_c').value.trim();S.ocr.client_ville=document.getElementById('cl_v').value.trim();
+  if(!S.ocr.client_email||!S.ocr.client_email.includes('@')){gA('Email obligatoire et valide.','aerr');return;}
+  goS5();
+}
+
+async function goS5(){
+  showSt(5);setPipe(5);
+  document.getElementById('dB').textContent='En cours...';document.getElementById('dB').className='badge binfo';
+  try{
+    lg('Chargement sites...','dim');
+    const sr=await aGet('/api/site-reparations');S.sites=sr.data||[];
+    const siteId=S.sites.length>0?S.sites[0].id:null;
+    lg(`Sites : ${S.sites.length} (ID ${siteId})`,'dim');
+    lg('1/3 — Création demande...','info');sBar('dBar',10);
+    const fd1=new FormData();
+    fd1.append('produit_id',S.prod.id);
+    if(S.mId)fd1.append('marque_id',S.mId);else if(S.mNew)fd1.append('marque',S.mNew);
+    if(S.ocr.montant_eligible_ttc)fd1.append('devis_montant_ttc',S.ocr.montant_eligible_ttc);
+    if(S.cliId){fd1.append('client_id',S.cliId);}
+    else{fd1.append('client[nom]',S.ocr.client_nom||'');fd1.append('client[prenom]',S.ocr.client_prenom||'');fd1.append('client[email]',S.ocr.client_email||'');fd1.append('client[code_postal]',S.ocr.client_code_postal||'');fd1.append('client[ville]',S.ocr.client_ville||'');fd1.append('client[telephone]',S.ocr.client_telephone||'');}
+    if(S.prod.libelle.toLowerCase().includes('cycle')||S.prod.libelle.toLowerCase().includes('vélo'))fd1.append('attributs[type-de-velo]','1');
+    const dem=await aPost('/api/demandes',fd1);
+    S.demId=dem.id;S.demCode=dem.code_unique;
+    lg(`✓ Demande créée — ID:${dem.id} Code:${dem.code_unique}`,'ok');sBar('dBar',40);
+    lg('2/3 — Mise à jour + facture...','info');
+    const fd2=new FormData();
+    fd2.append('_method','PUT');
+    fd2.append('reel_total_eligible_ttc',S.ocr.montant_eligible_ttc||S.ocr.montant_total_ttc||'0');
+    fd2.append('montant_ttc',S.ocr.montant_total_ttc||'0');
+    if(S.ocr.numero_facture)fd2.append('numero_facture',S.ocr.numero_facture);
+    if(siteId)fd2.append('reparation_lieu_reparateur_id',siteId);
+    fd2.append('facture',b64B(S.fd,'application/pdf'),S.fn);
+    const upd=await aPost(`/api/demandes/${S.demId}`,fd2);
+    const soutien=upd.reel_cout_soutien_ttc;
+    lg(`✓ Mise à jour — Soutien : ${soutien} €`,'ok');sBar('dBar',75);
+    const sv=parseFloat(String(soutien).replace(',','.'));
+    if(sv>0){
+      lg('3/3 — Soumission...','info');
+      const sub=await aPut(`/api/demandes/${S.demId}/submit`);
+      sBar('dBar',100);lg(`✓ Soumise ! Statut : ${sub.statut}`,'ok');
+      document.getElementById('dB').textContent='Soumise ✓';document.getElementById('dB').className='badge bok';
+      showRes(sub);
+    }else{
+      lg('⚠ Soutien = 0 € — Clôture.','warn');
+      await aPut(`/api/demandes/${S.demId}/close`);
+      sBar('dBar',100);
+      document.getElementById('dB').textContent='Clôturée';document.getElementById('dB').className='badge bwarn';
+      gA(`Demande ${S.demCode} clôturée — soutien 0 €. Vérifiez les montants.`,'awarn');
+    }
+  }catch(err){lg('✗ '+err.message,'err');document.getElementById('dB').textContent='Erreur';document.getElementById('dB').className='badge berr';setPipe(5,'err');gA('Erreur : '+err.message,'aerr');}
+}
+
+function showRes(d){
+  setPipe(6);showSt(6);
+  document.getElementById('lP').href=S.env==='preprod'?'https://asl-pp.reparateur-bonusrepar.fr/compte':'https://asl.reparateur-bonusrepar.fr/compte';
+  document.getElementById('fRes').innerHTML=`<div class="alert aok" style="margin-bottom:.6rem">✓ Demande <strong>${d.code_unique}</strong> soumise — ${S.env==='preprod'?'PRÉPROD':'PROD'}</div>
+  <div class="rr"><span class="rl">Code unique</span><span class="rv">${d.code_unique}</span></div>
+  <div class="rr"><span class="rl">Client</span><span class="rv">${d.prenom||''} ${d.nom||''}</span></div>
+  <div class="rr"><span class="rl">Montant TTC</span><span class="rv">${d.montant_ttc} €</span></div>
+  <div class="rr"><span class="rl">Éligible TTC</span><span class="rv">${d.reel_total_eligible_ttc} €</span></div>
+  <div class="rr"><span class="rl">Bonus accordé</span><span class="rv big">${d.reel_cout_soutien_ttc} €</span></div>
+  <div class="rr"><span class="rl">Statut</span><span class="rv"><span class="badge bok">${d.display_statut||d.statut}</span></span></div>
+  <div class="rr"><span class="rl">N° Facture</span><span class="rv">${d.numero_facture||'—'}</span></div>`;
+}
+
+function b64B(b64,ct='',sl=512){const bc=atob(b64);const ba=[];for(let o=0;o<bc.length;o+=sl){const s=bc.slice(o,o+sl);const bn=new Array(s.length);for(let i=0;i<s.length;i++)bn[i]=s.charCodeAt(i);ba.push(new Uint8Array(bn));}return new Blob(ba,{type:ct});}
+
+function rst(){Object.assign(S,{fd:null,fn:null,ocr:null,prods:[],marqs:[],prod:null,mId:null,mNew:null,cliId:null,demId:null,demCode:null,sites:[]});document.getElementById('fi').value='';document.getElementById('fC').textContent='Aucun fichier sélectionné';document.getElementById('logB').innerHTML='';hA();showSt(1);setPipe(1);document.getElementById('goBtn').disabled=true;}
+</script>
+</body>
+</html>
